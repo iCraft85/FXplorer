@@ -6,7 +6,8 @@ use crossterm::{
     terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
 };
 
-use crate::{tUtils::*, permissions::{self, getModified, getSize}};
+use crate::tUtils::*;
+use crate::fileUtils::*;
 
 pub fn uiMain(dirList: DirList) -> Result<(), io::Error> {
     // Setup Terminal

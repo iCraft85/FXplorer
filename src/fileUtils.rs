@@ -21,7 +21,7 @@ struct permissions {
     otherExecute: bool,
 }
 
-pub fn mode(bits: u32) -> String {
+pub fn getPerm(bits: u32) -> String {
     let mut s: String = String::new();
 
     rwx(&mut s, bits >> 6);

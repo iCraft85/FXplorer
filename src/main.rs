@@ -10,9 +10,10 @@ use std::os::unix::prelude::PermissionsExt;
 use std::path::{Path, PathBuf};
 
 mod tui;
-mod permissions;
+mod fileUtils;
 mod tUtils;
 
+use fileUtils::*;
 
 // TODO: Handle Symbols For file types
 
@@ -61,7 +62,7 @@ fn getContents(dir: &PathBuf) -> io::Result<Vec<DirItem>> {
                 let mut dirItem = DirItem {
                     name: name,
                     path: entry.path(),
-                    perm: permissions::mode(mode)
+                    perm: getPerm(mode)
                 };
 
                 // println!("Name: {:?} Perms: {:?}", dirItem.name, dirItem.perm);
