@@ -1,5 +1,5 @@
 use std::{io, thread, time::{Duration, UNIX_EPOCH, Instant}, fmt::format, os::unix::prelude::PermissionsExt};
-use ratatui::{prelude::*, widgets::*};
+use ratatui::{prelude::*, widgets::*, style::Stylize};
 use crossterm::{
     event::{self, DisableMouseCapture, EnableMouseCapture, Event, KeyCode, KeyEventKind},
     execute,
@@ -8,6 +8,7 @@ use crossterm::{
 
 use crate::tUtils::*;
 use crate::fileUtils::*;
+use crate::tNav::*;
 
 pub fn uiMain(dirList: DirList) -> Result<(), io::Error> {
     // Setup Terminal
@@ -46,9 +47,10 @@ fn uiRun<B: Backend> (terminal: &mut Terminal<B>, tickRate: Duration, mut dirLis
                 if key.kind == KeyEventKind::Press {
                     match key.code {
                         KeyCode::Char('q') => return Ok(()),
-                        KeyCode::Left => dirList.items.unselect(),
                         KeyCode::Char('j') => dirList.items.next(),
                         KeyCode::Char('k') => dirList.items.previous(),
+                        KeyCode::Enter => openDir(dirList.items.getSelected(), &mut dirList),
+                        KeyCode::Char('b') => exitDir(&mut dirList),
                         _ => {}
                     }
                 }
@@ -133,7 +135,7 @@ fn ui<B: Backend>(f: &mut Frame<B>, dirList: &mut DirList) {
     let mut nameList: Vec<ListItem> = vec![];
     for item in &dirList.items.items {
         let listItem = ListItem::new(format!("{}", item.name))
-            .style(Style::default().fg(Color::White));
+            .style(Style::default().fg(Color::Gray));
         nameList.push(listItem);
     }
 
@@ -201,45 +203,30 @@ fn ui<B: Backend>(f: &mut Frame<B>, dirList: &mut DirList) {
                .padding(Padding{left: 0, right: 0, top: 1, bottom: 0})) 
         .highlight_style(
             Style::default()
-                .bg(Color::LightGreen)
+                .fg(Color::White)
                 .add_modifier(Modifier::BOLD),
         )
-        .highlight_symbol(">> ");
+        .highlight_symbol("");
 
     let dirPermList = List::new(permList)
         .block(Block::default()
                .title(block::Title::from("Perm")) 
-               .padding(Padding{left: 0, right: 0, top: 1, bottom: 0})) 
-        .highlight_style(
-            Style::default()
-                .bg(Color::LightGreen)
-                .add_modifier(Modifier::BOLD),
-    );
+               .padding(Padding{left: 0, right: 0, top: 1, bottom: 0}));
 
     let dirSizeList = List::new(sizeList)
         .block(Block::default()
                .title(block::Title::from("Size")) 
-               .padding(Padding{left: 0, right: 0, top: 1, bottom: 0})) 
-        .highlight_style(
-            Style::default()
-                .bg(Color::LightGreen)
-                .add_modifier(Modifier::BOLD),
-    );
+               .padding(Padding{left: 0, right: 0, top: 1, bottom: 0}));
 
     let dirModifiedList = List::new(modifiedList)
         .block(Block::default()
                .title(block::Title::from("Modified")) 
-               .padding(Padding{left: 0, right: 0, top: 1, bottom: 0})) 
-        .highlight_style(
-            Style::default()
-                .bg(Color::LightGreen)
-                .add_modifier(Modifier::BOLD),
-    );
+               .padding(Padding{left: 0, right: 0, top: 1, bottom: 0}));
 
     // Renders a block by mapping it to a "chunk"
     f.render_widget(dirView, left);
 
-    f.render_widget(dirNameList, lLeft);
+    f.render_stateful_widget(dirNameList, lLeft, &mut dirList.items.state); 
     f.render_widget(dirPermList, llMid);
     f.render_widget(dirSizeList, lrMid);
     f.render_widget(dirModifiedList, lRight);

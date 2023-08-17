@@ -6,12 +6,12 @@ use clap::Parser;
 use std::env;
 use std::fs;
 use std::io;
-use std::os::unix::prelude::PermissionsExt;
 use std::path::{Path, PathBuf};
 
 mod tui;
 mod fileUtils;
 mod tUtils;
+mod tNav;
 
 use fileUtils::*;
 
@@ -19,15 +19,9 @@ use fileUtils::*;
 
 #[derive(Parser, Debug)]
 #[command(name = "fx", author, version, about, long_about = None)]
-struct Args {
+pub struct Args {
     #[clap(value_name="DirPath", value_delimiter=' ')]
     dir: Option<PathBuf>,
-}
-
-pub struct DirItem {
-    name: String,
-    path: PathBuf,
-    perm: String,
 }
 
 fn getDirectory(args: &Args) -> Result<PathBuf, io::Error>{
@@ -46,60 +40,26 @@ fn getDirectory(args: &Args) -> Result<PathBuf, io::Error>{
     }
 }
 
-fn getContents(dir: &PathBuf) -> io::Result<Vec<DirItem>> {
-    let mut entries: Vec<DirItem> = vec![];
-
-    for entry in fs::read_dir(dir)?{
-        match entry {
-            Ok(entry) => {
-                let mut mode = entry.path().metadata().unwrap().permissions().mode();
-
-                let mut name = entry.file_name().to_string_lossy().to_string();
-                if entry.path().is_dir() {
-                    name.push('/');
-                }
-
-                let mut dirItem = DirItem {
-                    name: name,
-                    path: entry.path(),
-                    perm: getPerm(mode)
-                };
-
-                // println!("Name: {:?} Perms: {:?}", dirItem.name, dirItem.perm);
-                entries.push(dirItem);
-            },
-            Err(err) => eprintln!("Error: {}", err),
-
-        }
-    }
-
-    // entries.sort();
-
-    Ok(entries)
-}
-
-
 fn main() {
     let args = Args::parse();
     let dir = getDirectory(&args);
 
     match dir {
         Ok(dir) => {
-            let contents = getContents(&dir).unwrap();
-            // for item in contents{
-            //     let meta = fs::metadata(item).unwrap().permissions();
-            //     println!("{:?}", meta)
-            // }
+            let contents = fileUtils::getContents(&dir).unwrap();
 
-            let dirList = tUtils::DirList::new(contents);
+            // TODO: Handle not having a parent
+
+            let mut dirList: tUtils::DirList;
+            if let Some(parent) = dir.parent() {
+                dirList = tUtils::DirList::new(parent.to_path_buf(), contents);
+            }
+            else {
+                dirList = tUtils::DirList::new(dir, contents);
+            }
             tui::uiMain(dirList);
         },
         Err(err) => eprintln!("Error: {}", err),
     }
 }
-
-
-
-
-
 

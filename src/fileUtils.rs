@@ -3,6 +3,56 @@ use std::fs;
 use std::os::unix::prelude::MetadataExt;
 use std::path::PathBuf;
 use std::time::{SystemTime, UNIX_EPOCH};
+use std::os::unix::prelude::PermissionsExt;
+use std::io;
+use std::env;
+
+pub struct DirItem {
+    pub name: String,
+    pub path: PathBuf,
+    pub perm: String,
+}
+
+pub fn getContents(dir: &PathBuf) -> io::Result<Vec<DirItem>> {
+    let mut entries: Vec<DirItem> = vec![];
+
+    for entry in fs::read_dir(dir)?{
+        match entry {
+            Ok(entry) => {
+                let mut dirItem: DirItem;
+
+                let mut name = entry.file_name().to_string_lossy().to_string();
+                if entry.path().is_dir() {
+                    name.push('/');
+                }
+
+                if let Ok(meta) = entry.path().metadata() {
+                    let mode = meta.permissions().mode();
+                    dirItem = DirItem {
+                        name: name,
+                        path: entry.path(),
+                        perm: getPerm(mode)
+                    };
+                }
+                else {
+                    dirItem = DirItem {
+                        name: name,
+                        path: entry.path(),
+                        perm: "ERR".to_owned(),
+                    };
+                }
+
+                entries.push(dirItem);
+            },
+            Err(err) => eprintln!("Error: {}", err),
+
+        }
+    }
+
+    // entries.sort();
+
+    Ok(entries)
+}
 
 struct permissions {
     // Owner Permissions 
